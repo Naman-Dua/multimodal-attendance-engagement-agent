@@ -9,6 +9,12 @@ env/
 ENV/
 .venv/
 
+# Environment variables & secrets (CRITICAL)
+.env
+*.env
+.env.*
+!.env.example
+
 # Streamlit
 .streamlit/secrets.toml
 
@@ -24,3 +30,4 @@ Thumbs.db
 *.mp3
 data/
 recordings/
+student_db/
