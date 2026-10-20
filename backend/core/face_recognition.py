@@ -24,7 +24,3 @@ class FaceRecognizer:
 
             # This is computing intensive, so we should run it sparingly
             dfs = DeepFace.find(img_path=frame, db_path=self.db_path, silent=True, enforce_detection=False)
-            return dfs
-        except Exception as e:
-            print(f"Face recognition error: {e}")
-            return []
