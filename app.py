@@ -103,7 +103,7 @@ if selected_session_id:
                     "Attendance Status": "✅ Confirmed Present" if p.is_present else "❌ Incomplete Presence"
                 })
             df_att = pd.DataFrame(records)
-            st.dataframe(df_att, use_container_width=True)
+            st.dataframe(df_att, width="stretch")
         else:
             st.info("No participant records registered for this session.")
 
@@ -117,10 +117,10 @@ if selected_session_id:
         if timeline:
             df_timeline = pd.DataFrame(timeline)
             df_chart = df_timeline.set_index("timestamp")[["attention"]]
-            st.line_chart(df_chart, use_container_width=True)
+            st.line_chart(df_chart, width="stretch")
             
             with st.expander("Explore Raw Temporal Points"):
-                st.dataframe(df_timeline, use_container_width=True)
+                st.dataframe(df_timeline, width="stretch")
         else:
             st.info("No granular engagement telemetry points recorded for this session.")
 
@@ -146,15 +146,14 @@ if selected_session_id:
 
         # Session-level AI suggestions
         st.markdown("#### AI Pedagogical Guidance (LLM Engine)")
-        with st.spinner("Generating insights..."):
-            suggestions_data = ai_engine.generate_suggestions({
-                "attendance_count": session_data.attendance_count if session_data else 0,
-                "average_engagement": (session_data.average_attention / 100.0) if session_data else 0.7,
-                "audio_level": "moderate"
-            })
-            
-            for tip in suggestions_data.get("suggestions", []):
-                st.markdown(f"- 🎯 **{tip}**")
+        suggestions_data = ai_engine.generate_suggestions({
+            "attendance_count": session_data.attendance_count if session_data else 0,
+            "average_engagement": (session_data.average_attention / 100.0) if session_data else 0.7,
+            "audio_level": "moderate"
+        })
+        
+        for tip in suggestions_data.get("suggestions", []):
+            st.markdown(f"- 🎯 **{tip}**")
 
     # Tab 4: Student Analytics
     with tab4:
@@ -177,7 +176,7 @@ if selected_session_id:
             if student_report.get("timeline"):
                 st.markdown("##### Personal Attention Timeline")
                 df_student = pd.DataFrame(student_report["timeline"]).set_index("time")
-                st.line_chart(df_student, use_container_width=True)
+                st.line_chart(df_student, width="stretch")
         else:
             st.info("No student telemetry available.")
 
@@ -195,10 +194,10 @@ if selected_session_id:
                 st.markdown(f"- ⭐ {s}")
         with tcol2:
             st.markdown("##### Recent Class Engagement History")
-            st.dataframe(pd.DataFrame(profile.get("class_history", [])), use_container_width=True)
+            st.dataframe(pd.DataFrame(profile.get("class_history", [])), width="stretch")
 
         st.markdown("##### Longitudinal Student Progress Trends")
-        st.dataframe(pd.DataFrame(profile.get("student_trends", [])), use_container_width=True)
+        st.dataframe(pd.DataFrame(profile.get("student_trends", [])), width="stretch")
 
 else:
     st.info("Click 'Run Demo Simulation' in the left sidebar to generate your first session dataset!")
