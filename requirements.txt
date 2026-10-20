@@ -12,3 +12,4 @@ soundfile
 groq
 deep-sort-realtime
 python-dotenv
+streamlit
