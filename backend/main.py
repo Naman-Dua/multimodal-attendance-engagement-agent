@@ -6,7 +6,6 @@ from datetime import datetime
 
 from backend.core.database import SessionLocal, Session as SessionModel, SessionPerson, PersonMetric
 from backend.core.face_detection import FaceDetector
-from backend.core.camera_service import CameraService
 from backend.core.audio_analysis import AudioAnalyzer
 from backend.core.engagement_scoring import EngagementScorer
 from backend.core.recommendations_engine import RecommendationsEngine

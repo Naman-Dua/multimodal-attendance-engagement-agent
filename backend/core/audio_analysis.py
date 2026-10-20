@@ -1,6 +1,4 @@
-import librosa
 import numpy as np
-import os
 
 class AudioAnalyzer:
     def __init__(self, sample_rate=16000):
@@ -8,48 +6,32 @@ class AudioAnalyzer:
 
     def analyze_audio_chunk(self, audio_data):
         """
-        Analyzes raw audio bytes/array:
-        1. Noise level (decibels)
-        2. Speech vs silence ratio
-        3. Sound activity patterns
-
-        Returns engagement metrics
+        Analyzes raw audio bytes/array: noise level (dB), speech vs silence ratio.
         """
         try:
-            # Convert bytes to float32 numpy array if needed
             if isinstance(audio_data, bytes):
-                # Assuming 16-bit PCM
                 y = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
             else:
-                y = audio_data
+                y = np.asarray(audio_data, dtype=np.float32)
 
             if len(y) == 0:
                 return None
 
-            # Calculate RMS energy
             rms = float(np.sqrt(np.mean(y ** 2)))
             noise_db = float(20 * np.log10(rms + 1e-6))
 
-            # Speech vs silence detection based on frame energy
-            frame_length = int(self.sample_rate * 0.025)  # 25ms
-            hop_length = int(self.sample_rate * 0.010)    # 10ms
-            
-            if len(y) >= frame_length:
-                frames = librosa.util.frame(y, frame_length=frame_length, hop_length=hop_length)
-                frame_rms = np.sqrt(np.mean(frames ** 2, axis=0))
+            # Chunk into 25ms windows with stdlib numpy (no librosa/scipy dependency)
+            chunk_size = int(self.sample_rate * 0.025)
+            num_chunks = len(y) // chunk_size
+            if num_chunks > 0:
+                chunks = y[:num_chunks * chunk_size].reshape(num_chunks, chunk_size)
+                frame_rms = np.sqrt(np.mean(chunks ** 2, axis=1))
                 speech_threshold = max(0.01, float(np.mean(frame_rms) * 1.2))
-                active_frames = np.sum(frame_rms > speech_threshold)
-                speech_ratio = float(active_frames / len(frame_rms)) if len(frame_rms) > 0 else 0.0
+                speech_ratio = float(np.sum(frame_rms > speech_threshold) / num_chunks)
             else:
                 speech_ratio = 1.0 if rms > 0.02 else 0.0
 
-            # Determine qualitative audio level
-            if noise_db < -45:
-                audio_level = "silent"
-            elif noise_db < -25:
-                audio_level = "moderate"
-            else:
-                audio_level = "noisy"
+            audio_level = "silent" if noise_db < -45 else ("moderate" if noise_db < -25 else "noisy")
 
             return {
                 "rms": round(rms, 4),
@@ -58,9 +40,7 @@ class AudioAnalyzer:
                 "audio_level": audio_level,
                 "is_speech_active": speech_ratio > 0.3
             }
-
         except Exception as e:
-            print(f"Audio analysis error: {e}")
             return {
                 "rms": 0.0,
                 "noise_level_db": -60.0,
