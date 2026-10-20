@@ -25,4 +25,3 @@ class CameraService:
             ret, frame = self.cap.read()
             if ret:
                 return frame
-        return None
