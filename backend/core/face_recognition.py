@@ -24,3 +24,19 @@ class FaceRecognizer:
 
             # This is computing intensive, so we should run it sparingly
             dfs = DeepFace.find(img_path=frame, db_path=self.db_path, silent=True, enforce_detection=False)
+            
+            matches = []
+            for df in dfs:
+                if not df.empty and "identity" in df.columns:
+                    for _, row in df.iterrows():
+                        identity_file = os.path.basename(str(row["identity"]))
+                        student_name = os.path.splitext(identity_file)[0]
+                        matches.append({
+                            "student_id": student_name,
+                            "distance": float(row.get("distance", 0.0))
+                        })
+            return matches
+
+        except Exception as e:
+            print(f"Face recognition error: {e}")
+            return []
