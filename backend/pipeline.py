@@ -30,10 +30,10 @@ class ClassroomPipeline:
         # Real tracking & presence state
         self.tracked_people = {}  # {track_id: {"last_centroid": (cx, cy), "first_seen": dt, "last_seen": dt, "total_sec": float}}
         self.next_track_id = 1
-        self.min_presence_sec = 5.0  # Configurable sustained attendance threshold
+        self.min_presence_sec = 3.0  # Configurable sustained attendance threshold
 
     def _match_centroids(self, detected_bboxes: List[tuple]) -> List[int]:
-        """Simple spatial centroid tracker (nearest neighbor within distance threshold)."""
+        """Spatial centroid tracker (nearest neighbor within distance threshold)."""
         assigned_ids = []
         new_centroids = []
         for (x, y, w, h) in detected_bboxes:
@@ -80,7 +80,7 @@ class ClassroomPipeline:
         # Track identities across frames
         assigned_ids = self._match_centroids(bboxes)
         
-        # Update presence durations
+        # Accumulate presence duration based on frame delta
         for tid in assigned_ids:
             self.tracked_people[tid]["total_sec"] += dt
 
@@ -128,6 +128,12 @@ class ClassroomPipeline:
         if not cap.isOpened():
             raise RuntimeError(f"Failed to open video source: {source}. Ensure webcam is connected or file path is valid.")
 
+        # Determine frame duration: for video files use container FPS, fallback to 30.0
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if not fps or fps <= 0 or np.isnan(fps) or fps > 120:
+            fps = 30.0
+        frame_dt = 1.0 / fps
+
         db = SessionLocal()
         session_record = SessionModel(
             teacher_id=self.teacher_id,
@@ -140,7 +146,6 @@ class ClassroomPipeline:
         session_id = session_record.id
 
         frame_count = 0
-        prev_time = time.time()
 
         try:
             while True:
@@ -148,12 +153,8 @@ class ClassroomPipeline:
                 if not ret:
                     break
 
-                now = time.time()
-                dt = max(0.01, now - prev_time)
-                prev_time = now
                 frame_count += 1
-
-                res = self.process_single_frame(frame, dt=dt)
+                res = self.process_single_frame(frame, dt=frame_dt)
 
                 # Record metrics every 15 frames (~0.5s)
                 if frame_count % 15 == 0:
@@ -170,10 +171,13 @@ class ClassroomPipeline:
                 if max_frames and frame_count >= max_frames:
                     break
 
-            # Mark final attendance
+            # Calculate total video duration and adaptive presence threshold
+            total_video_duration = max(0.1, frame_count * frame_dt)
+            effective_threshold = min(self.min_presence_sec, max(0.5, total_video_duration * 0.3))
+
             confirmed_attendees = 0
             for tid, tdata in self.tracked_people.items():
-                is_present = tdata["total_sec"] >= self.min_presence_sec
+                is_present = tdata["total_sec"] >= effective_threshold
                 if is_present:
                     confirmed_attendees += 1
                 db.add(SessionPerson(
