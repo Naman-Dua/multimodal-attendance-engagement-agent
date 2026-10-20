@@ -3,8 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-import json
-import asyncio
 
 from backend.core.database import SessionLocal, Session as SessionModel, SessionPerson, PersonMetric
 from backend.core.face_detection import FaceDetector
@@ -162,7 +160,6 @@ async def websocket_audio_endpoint(websocket: WebSocket):
             data = await websocket.receive_bytes()
             metrics = audio_analyzer.analyze_audio_chunk(data)
             if metrics:
-                # Update engagement scorer with speech ratio
                 score_data = engagement_scorer.calculate_score(
                     presence_ratio=1.0 if active_session_state.get("active_people") else 0.5,
                     movement_level=0.5,

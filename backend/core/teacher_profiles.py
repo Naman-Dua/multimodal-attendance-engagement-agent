@@ -1,6 +1,4 @@
-from sqlalchemy.orm import Session
 from .database import SessionLocal, Session as SessionModel
-import random
 
 class TeacherProfileService:
     def get_profile(self, teacher_id: str):
